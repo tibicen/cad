@@ -28,22 +28,34 @@ This is just info for acad.exe functions:
 
 '''
 
+# SCRIPT = '''FILEDIA
+# 0
+# PURGE
+# A
+# *
+# N
+# AUDIT
+# Y
+# SAVEAS
+# 2004
+# C:\test.dwg
+# Y
+# QUIT
+#
+# '''
 
-ACAD_EXE_PATH = 'c:\Program Files\Autodesk\AutoCAD LT 2012 - English\acadlt.exe'
 ACAD_EXE_PATH = False
-FILE_DWG = ''
-SCRIPT_PATH = ''
+WDIR = '\\\\R2srv\\projekty\\DĄBKI\\PROJEKT\\PB\\WYDANIA\\170607-BUD HOTELOWE DLA PPOŻ'
 SCRIPT = '''FILEDIA
 0
-PURGE
-A
-*
-N
-AUDIT
-Y
+-LAYER
+OFF
+A-WYBURZENIA
+
+FIND
 SAVEAS
-2004
-C:\test.dwg
+2007
+
 Y
 QUIT
 
@@ -61,33 +73,33 @@ def findACAD():
 
 
 def createScript(SCRIPT, FILE_DWG):
-    os.chdir(FILE_DWG.rsplit('\\', 1)[0])
     tmpDWG = open('SCRIPT.scr', 'w')
     tmpDWG.write(SCRIPT)
     tmpDWG.close()
 
 
-def runDWG(FILE_DWG, ACAD_EXE_PATH):
-    os.system(ACAD_EXE_PATH.rsplit('\\', 1)[1] + ' ' +
-              FILE_DWG.rsplit('\\', 1)[1] +
-              '/nologo /nossm /b "' +
-              FILE_DWG.rsplit('\\', 1)[0] + '\\SCRIPT.scr"')
-    os.chdir(ACAD_EXE_PATH.rsplit('\\', 1)[0])
+def runDWG(FILE_DWG, ACAD_EXE_PATH, WDIR):
+    path, cad = ACAD_EXE_PATH.rsplit('\\', 1)
+    os.chdir(path)
+    print(FILE_DWG)
+    # print(cad + ' "' +
+    #       os.path.join(WDIR, FILE_DWG) +
+    #       '" /nologo /nossm /b "' +
+    #       os.path.join(WDIR, 'SCRIPT.scr') + '"')
+    os.system(cad + ' "' +
+              os.path.join(WDIR, FILE_DWG) +
+              '" /nologo /nossm /b "' +
+              os.path.join(WDIR, 'SCRIPT.scr') + '"')
+    os.chdir(WDIR)
     os.remove('SCRIPT.scr')
 
 
 if __name__ == '__main__':
-    if ACAD_EXE_PATH == False:
+    if ACAD_EXE_PATH is False:
         ACAD_EXE_PATH = findACAD()
-        a = open('AutoACAD.py', 'r+')
-        b = open('test.py', 'w')
-        newtext = ''
-        lines = a.readlines()
-        for n in lines:
-            if n.startswith('ACAD_EXE_PATH'):
-                n = "ACAD_EXE_PATH = '" + ACAD_EXE_PATH + "'\n"
-            newtext += n
-
-        b.write(newtext)
-        b.close()
-        a.close()
+    os.chdir(WDIR)
+    for f in os.listdir(WDIR):
+        if f.endswith('.dwg') and not f.endswith('-P.dwg'):
+            # print(f)
+            createScript(SCRIPT, os.path.join(WDIR, f))
+            runDWG(f, ACAD_EXE_PATH, WDIR)

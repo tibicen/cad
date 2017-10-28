@@ -5,6 +5,7 @@ import sys
 from multiprocessing import Pool
 
 import ezdxf
+from openpyxl import Workbook
 
 WORK_DIR = 'C:\\test'
 FILES_DWG = ['BSH-LAB_QMT-PW-A.dwg']
@@ -94,11 +95,37 @@ def main():
     return RYSUNKI
 
 
-def sum_all_areas():
-    dxf = ezdxf.readfile('C:\\test\\bb.dxf')
-    texts = dxf.entities.query('MTEXT')
-    texts = [x for x in texts if x.dxf.layer == 'R2_POWIERZCHNIE']
-    l4 = [x for x in texts if x.dxf.insert[0] > 40000]
+def find_in_files():
+    for dwgfile in os.listdir(WORK_DIR):
+        dxf = openDrawning(dwgfile)
+        for e in dxf.entities:
+            try:
+                NR = e.get_attrib_text('NR')
+                if NR == 'SZ5':
+                    print(dwgfile)
+            except:
+                pass
+
+
+def count_area():
+    tables = []
+    for dwgfile in os.listdir(WORK_DIR):
+        if dwgfile.endswith('.dwg'):
+            tmp_tables = []
+            dxf = openDrawning(dwgfile)
+            metki = dxf.entities.query('INSERT[name=="METKA2"]')
+            for met in metki:
+                NR = met.get_attrib_text('NR')
+                NAZWA_POM = met.get_attrib_text('NAZWA_POM')
+                POW = float(met.get_attrib_text('POW').replace(',', '.'))
+                tmp_tables.append((NR, NAZWA_POM, POW))
+                print("{},{},{}".format(NR, NAZWA_POM, POW))
+            # f = open(dwgfile+'.csv', 'w')
+            # f.writelines([','.join(t)+'\n' for t in tmp_tables])
+            tables += tmp_tables
+    # f = open('all.csv', 'w')
+    # f.writelines([','.join(t)+'\n' for t in tables])
+    write_2_xls(tables, 'all')
 
 
 def areas2xls4dabki():
@@ -135,6 +162,41 @@ def areas2xls4dabki():
     f.close()
 
 
+def write_2_xls(data, name):
+    wb = Workbook()
+    # grab the active worksheet
+    ws = wb.active
+    # Data can be assigned directly to cells
+    ws['A1'] = 42
+    # Rows can also be appended
+    for d in data:
+        ws.append(d)
+    wb.save(name + ".xlsx")
+
+
+def searchFiles(path):
+    pack = []
+    for p, d, files in os.walk(path):
+        for f in files:
+            if f.endswith('.dwg'):
+                # dxf = openDrawning(os.path.join(p,f))
+                size = os.stat(os.path.join(p, f)).st_size
+                mb = size / 1024 / 1024
+                if mb > 5:
+                    pack.append(os.path.join(p, f))
+                    try:
+                        print('{:6.2f}, {}'.format(mb, f))
+                    except UnicodeEncodeError:
+                        pass
+        f = open('lista.txt', 'w')
+        f.write(pack)
+        f.close()
+
+
 if __name__ == '__main__':
     os.chdir(WORK_DIR)
     # areas2xls4dabki()
+    print('test')
+    # searchFiles('\\\\R2srv\\projekty')
+    # find_in_files()
+    count_area()
